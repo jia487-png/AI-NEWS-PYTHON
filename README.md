@@ -15,7 +15,7 @@ python main.py --output reports     # 自定义输出目录
 仅使用 Python 标准库，无需安装第三方依赖；要求 Python 3.10+。
 
 
-##总体设计
+## 总体设计
 Python 版 CLI 使用相同的核心流程：并发抓取三个源 → 统一成新闻记录 → 过滤最近 24 小时 → 去重 → 按发布时间倒序 → 生成 Markdown 日报到 output/。
 统一数据模型用 dataclass：
 @dataclass
@@ -25,20 +25,20 @@ class NewsItem:
     published_at: datetime  # 统一转成带时区的 UTC 时间
     source: str             # TechCrunch / The Verge / Hacker News
     summary: str
-##技术选型
+## 技术选型
 - Python 3.11+
 - httpx：并发抓取 RSS 和 HN API，并统一设置超时
 - feedparser：解析 TechCrunch 和 The Verge 的 RSS/Atom，能可靠拿到标题、链接、发布时间、描述
 - 自带 html.parser 做轻量 HTML 清洗；摘要只截取第一句，避免引入额外依赖
 - 依赖写在 requirements.txt，用 python main.py 直接运行，不需要 web 框架
-##数据源
+## 数据源
 - TechCrunch AI：
   https://techcrunch.com/category/artificial-intelligence/feed/
 - The Verge AI：
   https://www.theverge.com/rss/ai-artificial-intelligence/index.xml
 - Hacker News：官方和 Algolia 都没有真实的 ai tag，因此沿用已确认的方案：抓取 HN Algolia 最近 24 小时 story 流，再按标题/正文里的 AI 关键词过滤，作为“AI 标签流”的等价实现
 HN 用 search_by_date，一次拿 100 条并自动翻页，直到超过 24 小时窗口或达到安全上限；当前实际数据约 10 页以内。
-##项目结构
+## 项目结构
 main.py              CLI 入口与参数解析
 sources.py           源定义
 fetchers.py          抓取 RSS、Atom、HN Algolia
@@ -52,7 +52,7 @@ CLI 用法：
 python main.py
 python main.py --hours 48
 python main.py --output output
-##日报格式
+## 日报格式
 标题、链接、发布时间、来源和摘要都会落到文件里，并满足新增的两点：
 # AI 新闻日报
 
@@ -68,13 +68,13 @@ python main.py --output output
 - 发布时间：...
 - 摘要：只保留描述/正文第一句，没有正文时用标题兜底
 文件名使用本地日期：output/ai-news-2026-09-05.md；同一天重复运行会覆盖。
-##健壮性
+## 健壮性
 - 三个源并发抓取，各自超时 15 秒
 - 单个源失败只打警告，不中断整个任务
 - 缺标题、缺链接、缺时间或无法解析时间的记录直接跳过
 - 同一天跑多次不产生重复文件，而是覆盖当天日报
 - 全部源失败或 24 小时内没有文章时不生成空文件，进程返回非 0 退出码
-##验证
+## 验证
 - 用 python -m compileall 做语法检查
 - 对 HTML 清洗、摘要截取、日期过滤、去重、Markdown 渲染写单元测试
 - 最后真实抓取一次，检查统计行、摘要、来源数、倒序和文件落盘
